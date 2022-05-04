@@ -114,19 +114,19 @@ class Utils:
             now_utc8=utc_timestamp+dt.timedelta(hours=8)    
             if endDateStr is None:                # The value is not dateRage,it's expirationDate
                 if (now_utc8+timedelta(days=day)).date()>=expirationDate.date():  #Task will be expired in XX days
-                    logging.info("Task {0} will be expired on {1},update Status to \"To Do\"".format(taskName,expirationDate.date()))
+                    logging.info("Task [{0}] will be expired on {1},update Status to \"To Do\"".format(taskName,expirationDate.date()))
                     self.updateTaskStatus(pageid,"To Do") 
             else: #dateRange
                 if  now_utc8.date()>=startDate.date() and now_utc8.date()<=expirationDate.date():
-                    logging.info("Task {0} should  be in progress between {1}  and {2},update Status to \"Doing\"".format(taskName,startDate.date(),expirationDate.date()))
+                    logging.info("Task [{0}] should  be in progress between {1}  and {2},update Status to \"Doing\"".format(taskName,startDate.date(),expirationDate.date()))
                     self.updateTaskStatus(pageid,"Doing") 
 
             if now_utc8.date()>=expirationDate.date():   #Already expired
-                logging.info("Task:{0} is already expired on {1},update Status to \"doing\"".format(taskName,expirationDate.date()))
+                logging.info("Task:[{0}] is already expired on {1},update Status to \"doing\"".format(taskName,expirationDate.date()))
                 self.updateTaskStatus(pageid,"Doing")                                   
              
     def createTask(self,databaseid,task):
-        logging.info("Daily task creating:{0}".format(task.Title))       
+        logging.info("Daily task creating:[{0}]".format(task.Title))       
         client=self.client   		
         body="""
     {"parent": {
@@ -166,7 +166,7 @@ class Utils:
         data["parent"]["database_id"]=databaseid
         data["children"][0]["paragraph"]['rich_text'][0]['text']['content']=""
         result=client.send_post("pages",data)
-        logging.info("Daily task created:{0} ".format(task.Title))       
+        logging.info("Daily task created:[{0}] ".format(task.Title))       
 
     def getTaskConfigurationFromNotion(self,databaseid):        
         client=self.client
