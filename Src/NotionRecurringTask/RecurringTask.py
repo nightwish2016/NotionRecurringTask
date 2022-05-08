@@ -5,11 +5,12 @@ import logging
 class RecurringTask:
     def __init__(self):       
         pass
-    def process(self,taskConfiguration_dabaseid,databaseid):      
-        u=Utils()		
+    def process(self,auth,taskConfiguration_dabaseid,databaseid):             
+        u=Utils(auth)		
         u.createDailyTask(taskConfiguration_dabaseid,databaseid)
         days=3
-        u.updateTaskWithTBDStatusToSpecificStatus(databaseid,days)
+        u.updateTaskWithTBDOrEmptyStatusToSpecificStatus(databaseid,days)
+        u.UpdateEmptyExpirationTask(databaseid)
       
 
 

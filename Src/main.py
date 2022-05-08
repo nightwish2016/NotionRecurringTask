@@ -1,5 +1,8 @@
 from NotionRecurringTask.RecurringTask import RecurringTask
-taskConfiguration_dabaseid='xxxx'
-databaseid='xxxx'
-knotion=RecurringTask()
-knotion.process(taskConfiguration_dabaseid,databaseid)
+
+if __name__ == "__main__":
+    auth="XXX"
+    taskConfiguration_dabaseid='XXXXX'
+    databaseid='XXX'
+    knotion=RecurringTask()
+    knotion.process(auth,taskConfiguration_dabaseid,databaseid)

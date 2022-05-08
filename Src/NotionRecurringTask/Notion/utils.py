@@ -10,9 +10,9 @@ from NotionRecurringTask.notion import *
 import logging
 logging.basicConfig(encoding='utf-8', level=logging.INFO)
 class Utils:
-    def __init__(self): 
+    def __init__(self,auth): 
         self.__baseurl="https://api.notion.com" 
-        self.__auth="secret_Y6RG2tlin3I8fIK5G4LDioYFqiZYS4oPfCBuc0K75vG"
+        self.__auth=auth
         self.client=NotionAPIClient(self.__baseurl,self.__auth)   
         pass
     def createDailyTask(self,taskConfiguration_dabaseid,databaseid):
@@ -52,26 +52,73 @@ class Utils:
         task_list=json.loads(taskJson,object_hook=JSONObject)
         return task_list
 
-    def getTaskWithTBDStatusAndExpirationDateIsNotEmpty(self,databaseid):
+    def getTaskWithTBDOrEmptyStatusAndExpirationDateIsNotEmpty(self,databaseid):
         client=self.client
         body="""
         {
-    "filter":{
-    "and":[{
-        "property": "Status",
-        "select": {
-            "equals": "TBD"
-        }
-    },
-    {
-        "property": "ExpirationDate/DateRange",
-        "date": {
-            "is_not_empty": true
-        }
-    }
-    ]    
-    }
-}
+     "filter": {
+         "and": [{
+                 "or": [{
+                         "property": "Status",
+                         "select": {
+                             "equals": "TBD"
+                         }
+                     },
+                     {
+                         "property": "Status",
+                         "select": {
+                             "is_empty": true
+                         }
+                     }
+
+                 ]
+             },
+             {
+                 "property": "ExpirationDate/DateRange",
+                 "date": {
+                     "is_not_empty": true
+                 }
+             }
+         ]
+     }
+ }
+        """   
+        data=json.loads(body)	
+        s=client.send_post("databases/{0}/query".format(databaseid),data) #read all data from databases        
+        # print(s)
+        return s
+    
+
+    def getTaskWithEmptyExpirationDate(self,databaseid):
+        client=self.client
+        body="""
+        {
+     "filter": {
+         "and": [{
+                 "or": [{
+                         "property": "Status",
+                         "select": {
+                             "equals": "TBD"
+                         }
+                     },
+                     {
+                         "property": "Status",
+                         "select": {
+                             "is_empty": true
+                         }
+                     }
+
+                 ]
+             },
+             {
+                 "property": "ExpirationDate/DateRange",
+                 "date": {
+                     "is_empty": true
+                 }
+             }
+         ]
+     }
+ }
         """   
         data=json.loads(body)	
         s=client.send_post("databases/{0}/query".format(databaseid),data) #read all data from databases        
@@ -94,14 +141,54 @@ class Utils:
         data["properties"]["Status"]['select']['name']=status
         s=client.send_patch("pages/{0}".format(pageid),data) #read all data from databases
         # print(s)
+    
+    def updateTask(self,pageid,status,expirationDate):
+        client=self.client
+        body="""
+        {"properties": {
+ "Status" :{
+                "select": {
+                    "name": "To Do"
+                }
+            },
+             "ExpirationDate/DateRange" : {
+                "date": {
+                "start": "2021-04-26"       
+                }
+            }
+}
+}
+        """
+        data=json.loads(body)	
+        data["properties"]["Status"]['select']['name']=status
+        data["properties"]['ExpirationDate/DateRange']['date']['start']=expirationDate
+        s=client.send_patch("pages/{0}".format(pageid),data) #read all data from databases
+        # print(s)
 
-    def updateTaskWithTBDStatusToSpecificStatus(self,databaseid,day):   
-        pagels=self.getTaskWithTBDStatusAndExpirationDateIsNotEmpty(databaseid)
-        pagelist=pagels["results"]
+    def UpdateEmptyExpirationTask(self,databaseid):
+        pagels_emptyExpirationDate=self.getTaskWithEmptyExpirationDate(databaseid)     
+        pagelist__emptyExpirationDate=pagels_emptyExpirationDate["results"]
+        utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
+        now_utc8=utc_timestamp+dt.timedelta(hours=8)  
+        for page in pagelist__emptyExpirationDate:
+            pageid=page["id"]  
+            taskName=""
+            if len(page["properties"]["Name"]["title"])>0:           
+                taskName=page["properties"]["Name"]["title"][0]["text"]['content']
+            date=page["properties"]['ExpirationDate/DateRange']["date"]
+            if date is None:
+                logging.info("Task [{0}] expirationDate is None,Update status to [To Do],update ExpirationDate to Today".format(taskName))
+                self.updateTask(pageid,"To Do",str(now_utc8.date())) 
+
+    def updateTaskWithTBDOrEmptyStatusToSpecificStatus(self,databaseid,day):   
+        pagels=self.getTaskWithTBDOrEmptyStatusAndExpirationDateIsNotEmpty(databaseid)     
+        pagelist=pagels["results"]               
         for page in pagelist:
             pageid=page["id"]            
-            expirationDateStr=""            
-            taskName=page["properties"]["Name"]["title"][0]["text"]['content']
+            expirationDateStr=""
+            taskName=""
+            if len(page["properties"]["Name"]["title"])>0:           
+                taskName=page["properties"]["Name"]["title"][0]["text"]['content']
             startDateStr=page["properties"]['ExpirationDate/DateRange']["date"]["start"]
             endDateStr=page["properties"]['ExpirationDate/DateRange']["date"]["end"]
             if endDateStr is  not None:  
@@ -145,6 +232,16 @@ class Utils:
                 "select": {
                     "name": "Doing"
                 }
+            },
+            "Tag" :{
+                "multi_select": [{
+                    "name": "Work"
+                }]
+            },
+            "ExpirationDate/DateRange" : {
+                "date": {
+                "start": "2021-04-26"       
+                }
             }
         },
         "children": [{
@@ -160,9 +257,13 @@ class Utils:
             }
         }]
     }"""
+        utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
+        now_utc8=utc_timestamp+dt.timedelta(hours=8)    
         data=json.loads(body)
         data["properties"]["title"]["title"][0]["text"]['content']=task.Title
         data["properties"]["Status"]['select']['name']=task.Status
+        data["properties"]["Tag"]['multi_select']=task.Tag
+        data["properties"]['ExpirationDate/DateRange']['date']['start']=str(now_utc8.date())
         data["parent"]["database_id"]=databaseid
         data["children"][0]["paragraph"]['rich_text'][0]['text']['content']=""
         result=client.send_post("pages",data)
@@ -205,6 +306,14 @@ class Utils:
                     for day in days:
                         day_ls.append(day["name"])
                 configuration.CycleDays=day_ls 
+
+
+                tags=notionResult["properties"]['Tag']['multi_select'] 
+                tag_ls=[]   
+                if len(tags)>0:     
+                    for tag in tags:
+                        tag_ls.append({"name":tag["name"]})
+                configuration.Tag=tag_ls
 
                 cycleDateRange=notionResult["properties"]['Cycle Date']['date']
                 cycleDate=[]
