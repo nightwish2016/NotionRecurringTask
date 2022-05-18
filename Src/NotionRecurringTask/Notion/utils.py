@@ -10,22 +10,23 @@ from NotionRecurringTask.notion import *
 import logging
 logging.basicConfig(encoding='utf-8', level=logging.INFO)
 class Utils:
-    def __init__(self,auth): 
+    def __init__(self,auth,deltaTime): 
         self.__baseurl="https://api.notion.com" 
         self.__auth=auth
-        self.client=NotionAPIClient(self.__baseurl,self.__auth)   
+        self.client=NotionAPIClient(self.__baseurl,self.__auth)
+        self.deltaTime=deltaTime   
         pass
     def createDailyTask(self,taskConfiguration_dabaseid,databaseid):
     #    task_ls=self.getDailyTaskFromFile()
         task_ls=self.getTaskConfiguration(taskConfiguration_dabaseid)
         utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
-        now_utc8=(utc_timestamp+dt.timedelta(hours=8))
+        now_utc8=(utc_timestamp+dt.timedelta(hours=self.deltaTime))
         # print("utc now"+str(utc_timestamp) )       
         # print("utc8 now"+str(now_utc8) )
-        for task in task_ls:
+        for task in task_ls:                        
             endDate = datetime.strptime(task.EndDate, '%Y-%m-%d')  
             if now_utc8.date()<=endDate.date():                           
-                if task.Type=="Daily"  :
+                if task.Type=="Daily":
                     self.createTask(databaseid,task)
                 elif task.Type=="Workday":                                          
                     if now_utc8.weekday()<5: #workday
@@ -43,7 +44,22 @@ class Utils:
                 else:
                     pass
 
-    
+    def autoFillCompleteDate(self,databaseid):
+        notion_Result=self.getTaskWithDoneStatusAndEmptyCompleteDate(databaseid)
+        results=notion_Result['results']
+        utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
+        now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)  
+        lastDate=now_utc8+dt.timedelta(days=-1) 
+        for result in results:
+            completeDate=result['properties']['CompleteDate']['date']
+            pageid=result["id"] 
+            taskName=result['properties']["Name"]["title"][0]["text"]['content']            
+            if completeDate is None:
+                #update completeDate
+                logging.info("Fill Completed task [{0}] with date {1}".format(taskName,str(lastDate.date())))
+                self.updateTaskCompleteDate(pageid,str(lastDate.date()))       
+
+
     def getDailyTaskFromFile(self):
         path=os.path.join(Path(__file__).parent.parent.absolute(),"data.json")
         taskJson=""
@@ -77,6 +93,12 @@ class Utils:
                  "property": "ExpirationDate/DateRange",
                  "date": {
                      "is_not_empty": true
+                 }
+             },
+             {
+                 "property": "CompleteDate",
+                 "date": {
+                     "is_empty": true
                  }
              }
          ]
@@ -115,7 +137,14 @@ class Utils:
                  "date": {
                      "is_empty": true
                  }
+             },
+              {
+                 "property": "CompleteDate",
+                 "date": {
+                    "is_empty": true
+                 }
              }
+
          ]
      }
  }
@@ -165,11 +194,29 @@ class Utils:
         s=client.send_patch("pages/{0}".format(pageid),data) #read all data from databases
         # print(s)
 
+    
+    def updateTaskCompleteDate(self,pageid,completeDate):
+        client=self.client
+        body="""
+            {"properties": {       
+                    "CompleteDate" : {
+                    "date": {
+                    "start": "2021-04-26"       
+                    }
+                }
+        }
+        }
+        """
+        data=json.loads(body)	
+        data["properties"]['CompleteDate']['date']['start']=completeDate
+        s=client.send_patch("pages/{0}".format(pageid),data) #read all data from databases
+        # print(s)
+
     def UpdateEmptyExpirationTask(self,databaseid):
         pagels_emptyExpirationDate=self.getTaskWithEmptyExpirationDate(databaseid)     
         pagelist__emptyExpirationDate=pagels_emptyExpirationDate["results"]
         utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
-        now_utc8=utc_timestamp+dt.timedelta(hours=8)  
+        now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)          
         for page in pagelist__emptyExpirationDate:
             pageid=page["id"]  
             taskName=""
@@ -198,7 +245,7 @@ class Utils:
             startDate=datetime.strptime(startDateStr, '%Y-%m-%d')      
             expirationDate = datetime.strptime(expirationDateStr, '%Y-%m-%d')        
             utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
-            now_utc8=utc_timestamp+dt.timedelta(hours=8)    
+            now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)    
             if endDateStr is None:                # The value is not dateRage,it's expirationDate
                 if (now_utc8+timedelta(days=day)).date()>=expirationDate.date():  #Task will be expired in XX days
                     logging.info("Task [{0}] will be expired on {1},update Status to \"To Do\"".format(taskName,expirationDate.date()))
@@ -258,7 +305,7 @@ class Utils:
         }]
     }"""
         utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
-        now_utc8=utc_timestamp+dt.timedelta(hours=8)    
+        now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)    
         data=json.loads(body)
         data["properties"]["title"]["title"][0]["text"]['content']=task.Title
         data["properties"]["Status"]['select']['name']=task.Status
@@ -285,9 +332,9 @@ class Utils:
 }
         """   
         data=json.loads(body)	
-        s=client.send_post("databases/{0}/query".format(databaseid),data) #read all data from databases        
-        # print(s)
+        s=client.send_post("databases/{0}/query".format(databaseid),data) #read all data from databases                
         return s
+        
     def getTaskConfiguration(self,databaseid):
         notionResult=self.getTaskConfigurationFromNotion(databaseid)
         notionConfiguration_list=[]        
@@ -325,7 +372,35 @@ class Utils:
                 configuration.CycleDateRange=cycleDate
 
                 notionConfiguration_list.append(configuration)    
-        return  notionConfiguration_list         
+        return  notionConfiguration_list  
+
+
+    def getTaskWithDoneStatusAndEmptyCompleteDate(self,databaseid):        
+        client=self.client
+        body="""
+                {
+ 	"filter": {
+ 		"and": [{
+ 				"property": "Status",
+ 				"select": {
+ 					"equals": "Done"
+ 				}
+ 			},
+ 			{
+ 				"property": "CompleteDate",
+ 				"date": {
+ 					"is_empty": true
+ 				}
+ 			}
+ 		]
+ 	}
+ }
+        """   
+        data=json.loads(body)	
+        s=client.send_post("databases/{0}/query".format(databaseid),data) #read all data from databases        
+        # print(s)
+        return s
+
         
 class JSONObject:
     def __init__(self, d):
