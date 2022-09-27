@@ -23,7 +23,7 @@ class Utils:
         now_utc8=(utc_timestamp+dt.timedelta(hours=self.deltaTime))
         # print("utc now"+str(utc_timestamp) )       
         # print("utc8 now"+str(now_utc8) )
-        for task in task_ls:                        
+        for task in task_ls:           
             endDate = datetime.strptime(task.EndDate, '%Y-%m-%d')  
             if now_utc8.date()<=endDate.date():                           
                 if task.Type=="Daily":
@@ -247,7 +247,14 @@ class Utils:
             utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
             now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)    
             if endDateStr is None:                # The value is not dateRage,it's expirationDate
-                if (now_utc8+timedelta(days=day)).date()>=expirationDate.date():  #Task will be expired in XX days
+                daysEarlyToDailyTask=page["properties"]['DaysEarlyToDailyTask']['number']
+                if daysEarlyToDailyTask is not None:
+                    if (now_utc8+timedelta(days=daysEarlyToDailyTask)).date()>=expirationDate.date():
+                        if daysEarlyToDailyTask>0:
+                            self.updateTaskStatus(pageid,"To Do") 
+                        else:
+                            self.updateTaskStatus(pageid,"Doing") 
+                elif (now_utc8+timedelta(days=day)).date()>=expirationDate.date():  #Task will be expired in XX days
                     logging.info("Task [{0}] will be expired on {1},update Status to \"To Do\"".format(taskName,expirationDate.date()))
                     self.updateTaskStatus(pageid,"To Do") 
             else: #dateRange
@@ -326,6 +333,12 @@ class Utils:
         "select": {
             "does_not_equal": "Invalid"
         }
+    },
+    {
+        "property": "Title",
+        "title": {
+           "is_not_empty": true
+        }
     }
     ]
     }
@@ -344,7 +357,10 @@ class Utils:
                 configuration=TaskConfiguration()
                 configuration.Title=notionResult["properties"]["Title"]['title'][0]["text"]['content']
                 configuration.Type=notionResult["properties"]['Type']['select']['name']
-                configuration.EndDate=notionResult["properties"]['EndDate']['date']['start']
+                if notionResult["properties"]['EndDate']['date'] is None:
+                    configuration.EndDate='2099-12-30'
+                else:
+                    configuration.EndDate=notionResult["properties"]['EndDate']['date']['start']
                 configuration.Status=notionResult["properties"]['Status']['select']['name']
                
                 days=notionResult["properties"]['Cycle Days']['multi_select'] 
