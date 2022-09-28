@@ -396,12 +396,20 @@ class Utils:
         body="""
                 {
  	"filter": {
- 		"and": [{
+ 		"and": [{"or":[{
  				"property": "Status",
  				"select": {
  					"equals": "Done"
  				}
  			},
+            {
+                         "property": "Status",
+                         "select": {
+                             "equals": "Withdrawn"
+                         }
+             }
+            ]
+            },
  			{
  				"property": "CompleteDate",
  				"date": {
