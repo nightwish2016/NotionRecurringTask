@@ -2,10 +2,10 @@
 
 1. Recurring tasks
 
-   | Requirement                                                  | Comment |
-   | ------------------------------------------------------------ | ------- |
-   | Create a recurring task tempalate page and Create your recurring task(Daily task,Working day task,Weekly task etc) |         |
-   | Automatically create daily task by recurring task template page |         |
+   | Requirement                                                  |
+   | ------------------------------------------------------------ |
+   | Create a recurring task tempalate page and Create your recurring task(Daily task,Working day task,Weekly task etc) |
+   | Automatically create daily task by recurring task template page |
 
 2. Other tasks
 
@@ -21,15 +21,15 @@
 
 ![RecurringTask](http://kevinbucket2020.oss-cn-hangzhou.aliyuncs.com/HexoBlog/Notion/Create%20Daily%20task%20By%20template/RecurringTask.png)
 
-| Column     | Value                                 | Comment                                                   |
-| ---------- | ------------------------------------- | --------------------------------------------------------- |
-| Title      | task name                             | task name                                                 |
-| Status     | TBD,Todo,Doing,Done,Blocker，Invalid  | Task status                                               |
-| Type       | WorkDay,SpecificDay,SpecificDateRange | Recurring task type                                       |
-| Tag        | Work,Life,Python,Docker etc           | Tag to distinguish  tasks                                 |
-| Cycle Date | 9/18/2022-9/25/2022                   | Recurring task will be created within  date range         |
-| Cycle Days | From Monday to Sunday                 | you could choose multiple days                            |
-| EndDate    | Task's  end date                      | Recuring task will not be created if task's endDate<Today |
+| Column     | Value                                 | Comment                                                      |
+| ---------- | ------------------------------------- | ------------------------------------------------------------ |
+| Title      | task name                             | task name                                                    |
+| Status     | TBD,Todo,Doing,Done,Blocker，Invalid  | Task status                                                  |
+| Type       | WorkDay,SpecificDay,SpecificDateRange | Recurring task type                                          |
+| Tag        | Work,Life,Python,Docker etc           | Tag to distinguish  tasks                                    |
+| Cycle Date | 9/18/2022-9/25/2022                   | Recurring task will be created within  date range            |
+| Cycle Days | From Monday to Sunday                 | you could choose multiple days                               |
+| EndDate    | Task's  end date                      | Recuring task will not be created if task's endDate<Today.If EndDate is emtpy, It means EndDate is '2099-12-31' |
 
  **Task status**
 
@@ -41,6 +41,7 @@
 | Done                  | The task that we already completed it.                       |
 | Blocker               | The task have dependency  , We can't start task until task dependency is removed |
 | Invalid               | Invalid Task is only used in recurring task template page    |
+| Withdrawn             | Task should be  canceled  due to some reasons                |
 
 # Installation
 
