@@ -91,14 +91,13 @@ def main(mytimer: func.TimerRequest) -> None:
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
 ```
 
-### Test,See details in my blog: http://nightwish.tech
+### Test,See details in my blog: http://nightwish.tech/2022/09/25/RecurringTaskCreation/
 
 # Another solutions to create daily notion tasks
 
-1. reate jenkins job to call this package to create recurring task (TBD)
+1. Create recurring tasks by Jenkins ,See details in page http://nightwish.tech/2022/10/01/DailyTaskCreationByJenkins/
 
-
-2. Create job in windows task sechdualers to call this package to create recurring  task(TBD)
+2. Create recurring tasks by Windows task scheduler,See details in page http://nightwish.tech/2022/10/01/DailyTaskCreationByJenkins/
 
 # Notion API reference
 
