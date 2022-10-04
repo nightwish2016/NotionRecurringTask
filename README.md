@@ -98,7 +98,7 @@ def main(mytimer: func.TimerRequest) -> None:
 
 1. Create recurring tasks by Jenkins ,See details in page http://nightwish.tech/2022/10/01/DailyTaskCreationByJenkins/
 
-2. Create recurring tasks by Windows task scheduler,See details in page http://nightwish.tech/2022/10/01/DailyTaskCreationByJenkins/
+2. Create recurring tasks by Windows task scheduler,See details in page http://nightwish.tech/2022/10/01/DailyTaskCreationByTaskSechduler/
 
 # Notion API reference
 
