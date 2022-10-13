@@ -53,7 +53,9 @@ class Utils:
         for result in results:
             completeDate=result['properties']['CompleteDate']['date']
             pageid=result["id"] 
-            taskName=result['properties']["Name"]["title"][0]["text"]['content']            
+            taskName=""
+            if len(result['properties']["Name"]["title"])>0:          
+                taskName=result['properties']["Name"]["title"][0]["text"]['content']            
             if completeDate is None:
                 #update completeDate
                 logging.info("Fill Completed task [{0}] with date {1}".format(taskName,str(lastDate.date())))
@@ -88,13 +90,7 @@ class Utils:
                      }
 
                  ]
-             },
-             {
-                 "property": "ExpirationDate/DateRange",
-                 "date": {
-                     "is_not_empty": true
-                 }
-             },
+             },             
              {
                  "property": "CompleteDate",
                  "date": {
@@ -211,6 +207,9 @@ class Utils:
         data["properties"]['CompleteDate']['date']['start']=completeDate
         s=client.send_patch("pages/{0}".format(pageid),data) #read all data from databases
         # print(s)
+    def UpdateTaskStatus(self,databaseid,day):
+        self.autoFillCompleteDate(databaseid)            
+        self.updateTaskWithTBDOrEmptyStatusToSpecificStatus(databaseid,day)
 
     def UpdateEmptyExpirationTask(self,databaseid):
         pagels_emptyExpirationDate=self.getTaskWithEmptyExpirationDate(databaseid)     
@@ -229,42 +228,50 @@ class Utils:
 
     def updateTaskWithTBDOrEmptyStatusToSpecificStatus(self,databaseid,day):   
         pagels=self.getTaskWithTBDOrEmptyStatusAndExpirationDateIsNotEmpty(databaseid)     
-        pagelist=pagels["results"]               
+        pagelist=pagels["results"]   
+        utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc)  
+        now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)               
         for page in pagelist:
             pageid=page["id"]            
             expirationDateStr=""
             taskName=""
             if len(page["properties"]["Name"]["title"])>0:           
                 taskName=page["properties"]["Name"]["title"][0]["text"]['content']
-            startDateStr=page["properties"]['ExpirationDate/DateRange']["date"]["start"]
-            endDateStr=page["properties"]['ExpirationDate/DateRange']["date"]["end"]
-            if endDateStr is  not None:  
-                expirationDateStr=endDateStr
-            else:
-                expirationDateStr=startDateStr            
-            startDate=datetime.strptime(startDateStr, '%Y-%m-%d')      
-            expirationDate = datetime.strptime(expirationDateStr, '%Y-%m-%d')        
-            utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
-            now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)    
-            if endDateStr is None:                # The value is not dateRage,it's expirationDate
-                daysEarlyToDailyTask=page["properties"]['DaysEarlyToDailyTask']['number']
-                if daysEarlyToDailyTask is not None:
-                    if (now_utc8+timedelta(days=daysEarlyToDailyTask)).date()>=expirationDate.date():
-                        if daysEarlyToDailyTask>0:
-                            self.updateTaskStatus(pageid,"To Do") 
-                        else:
-                            self.updateTaskStatus(pageid,"Doing") 
-                elif (now_utc8+timedelta(days=day)).date()>=expirationDate.date():  #Task will be expired in XX days
-                    logging.info("Task [{0}] will be expired on {1},update Status to \"To Do\"".format(taskName,expirationDate.date()))
-                    self.updateTaskStatus(pageid,"To Do") 
-            else: #dateRange
-                if  now_utc8.date()>=startDate.date() and now_utc8.date()<=expirationDate.date():
-                    logging.info("Task [{0}] should  be in progress between {1}  and {2},update Status to \"Doing\"".format(taskName,startDate.date(),expirationDate.date()))
-                    self.updateTaskStatus(pageid,"Doing") 
+            date=page["properties"]['ExpirationDate/DateRange']["date"]
+            if date is None: # Expiration is empty
+                logging.info("Task [{0}] expirationDate is None,Update status to [To Do],update ExpirationDate to Today".format(taskName))
+                self.updateTask(pageid,"To Do",str(now_utc8.date())) 
+                pass
+            else:     # Expiration is not empty           
+                startDateStr=page["properties"]['ExpirationDate/DateRange']["date"]["start"]
+                endDateStr=page["properties"]['ExpirationDate/DateRange']["date"]["end"]
+                if endDateStr is  not None:   #date range
+                    expirationDateStr=endDateStr
+                else: # specific date
+                    expirationDateStr=startDateStr            
+                startDate=datetime.strptime(startDateStr, '%Y-%m-%d')      
+                expirationDate = datetime.strptime(expirationDateStr, '%Y-%m-%d')        
+                # utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
+                # now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)    
+                if endDateStr is None:                # The value is not dateRage,it's expirationDate
+                    daysEarlyToDailyTask=page["properties"]['DaysEarlyToDailyTask']['number']
+                    if daysEarlyToDailyTask is not None:
+                        if (now_utc8+timedelta(days=daysEarlyToDailyTask)).date()>=expirationDate.date():
+                            if daysEarlyToDailyTask>0:
+                                self.updateTaskStatus(pageid,"To Do") 
+                            else:
+                                self.updateTaskStatus(pageid,"Doing") 
+                    elif (now_utc8+timedelta(days=day)).date()>=expirationDate.date():  #Task will be expired in XX days
+                        logging.info("Task [{0}] will be expired on {1},update Status to \"To Do\"".format(taskName,expirationDate.date()))
+                        self.updateTaskStatus(pageid,"To Do") 
+                else: #dateRange
+                    if  now_utc8.date()>=startDate.date() and now_utc8.date()<=expirationDate.date():
+                        logging.info("Task [{0}] should  be in progress between {1}  and {2},update Status to \"Doing\"".format(taskName,startDate.date(),expirationDate.date()))
+                        self.updateTaskStatus(pageid,"Doing") 
 
-            if now_utc8.date()>=expirationDate.date():   #Already expired
-                logging.info("Task:[{0}] is already expired on {1},update Status to \"doing\"".format(taskName,expirationDate.date()))
-                self.updateTaskStatus(pageid,"Doing")                                   
+                if now_utc8.date()>=expirationDate.date():   #Already expired
+                    logging.info("Task:[{0}] is already expired on {1},update Status to \"doing\"".format(taskName,expirationDate.date()))
+                    self.updateTaskStatus(pageid,"Doing")                                   
              
     def createTask(self,databaseid,task):
         logging.info("Daily task creating:[{0}]".format(task.Title))       
