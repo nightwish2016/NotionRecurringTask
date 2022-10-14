@@ -333,22 +333,29 @@ class Utils:
     def getTaskConfigurationFromNotion(self,databaseid):        
         client=self.client
         body="""
-        {
-    "filter":{
-    "and":[{
-        "property": "Status",
-        "select": {
-            "does_not_equal": "Invalid"
-        }
-    },
-    {
-        "property": "Title",
-        "title": {
-           "is_not_empty": true
-        }
-    }
-    ]
-    }
+      {
+	"filter": {
+		"and": [{
+			"and": [{
+					"property": "Status",
+					"select": {
+						"does_not_equal": "Invalid"
+					}
+				},
+				{
+					"property": "Status",
+					"select": {
+						"does_not_equal": "On Hold"
+					}
+				}
+			]
+		}, {
+			"property": "Title",
+			"title": {
+				"is_not_empty": true
+			}
+		}]
+	}
 }
         """   
         data=json.loads(body)	
@@ -414,7 +421,13 @@ class Utils:
                          "select": {
                              "equals": "Withdrawn"
                          }
-             }
+             },
+             {
+                         "property": "Status",
+                         "select": {
+                             "equals": "Unfinished"
+                         }
+             }             
             ]
             },
  			{
