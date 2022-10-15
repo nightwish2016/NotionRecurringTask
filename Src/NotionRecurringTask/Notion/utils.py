@@ -254,7 +254,7 @@ class Utils:
                 # utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
                 # now_utc8=utc_timestamp+dt.timedelta(hours=self.deltaTime)    
                 if endDateStr is None:                # The value is not dateRage,it's expirationDate
-                    daysEarlyToDailyTask=page["properties"]['DaysEarlyToDailyTask']['number']
+                    daysEarlyToDailyTask=page["properties"]['Reminder(days)']['number']
                     if daysEarlyToDailyTask is not None:
                         if (now_utc8+timedelta(days=daysEarlyToDailyTask)).date()>=expirationDate.date():
                             if daysEarlyToDailyTask>0:
