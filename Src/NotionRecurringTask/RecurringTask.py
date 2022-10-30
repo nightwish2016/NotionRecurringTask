@@ -7,7 +7,7 @@ class RecurringTask:
         pass
     def process(self,auth,taskConfiguration_dabaseid,databaseid,deltaTimeWithUTC):            
         u=Utils(auth,deltaTimeWithUTC)		
-        days=3
+        days=0
         u.createDailyTask(taskConfiguration_dabaseid,databaseid)
         u.UpdateTaskStatus(databaseid,days)
 
