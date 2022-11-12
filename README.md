@@ -32,7 +32,6 @@
    ![](http://kevinbucket2020.oss-cn-hangzhou.aliyuncs.com/HexoBlog/RecurringTaskCreation/TaskStatusUpdate.png)
 
 
-
 # Solutions
 
 1. Run this python package in Jenkins,see details in page http://nightwish.tech/2022/10/01/DailyTaskCreationByJenkins/
