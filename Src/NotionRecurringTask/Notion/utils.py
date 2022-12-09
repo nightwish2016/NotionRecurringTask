@@ -49,6 +49,9 @@ class Utils:
                         endDate= datetime.strptime(dateRange[1], '%Y-%m-%d')   
                         if now_utc8.date()>=startDate.date() and now_utc8.date()<=endDate.date(): #workday
                             self.createTask(databaseid,task)
+                    elif task.Type=="Monthly":                 
+                        if str(now_utc8.day) in task.DaysOfMonth:
+                            self.createTask(databaseid,task)
                     else:
                         pass
 
@@ -422,7 +425,12 @@ class Utils:
         if len(notionResult)>0:            
             notionResultList=notionResult["results"]
             for notionResult in notionResultList:
+                daysList=[]
+                for daysOfMonth in  notionResult["properties"]['Days of Month']['multi_select']:
+                    daysList.append(daysOfMonth['name'])
+
                 configuration=TaskConfiguration()
+                configuration.DaysOfMonth=daysList
                 configuration.Title=notionResult["properties"]["Title"]['title'][0]["text"]['content']
                 configuration.Type=notionResult["properties"]['Type']['select']['name']
                 if notionResult["properties"]['EndDate']['date'] is None:
@@ -502,4 +510,4 @@ class Utils:
         
 class JSONObject:
     def __init__(self, d):
-        self.__dict__ = d  
+        self.__dict__ = d

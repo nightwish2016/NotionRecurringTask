@@ -7,3 +7,4 @@ class TaskConfiguration:
         self.Status=""
         self.CycleDays=[]
         self.CycleDateRange=[]
+        self.DaysOfMonth=[]
