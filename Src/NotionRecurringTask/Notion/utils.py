@@ -16,33 +16,41 @@ class Utils:
         self.client=NotionAPIClient(self.__baseurl,self.__auth)
         self.deltaTime=deltaTime   
         pass
-    def createDailyTask(self,taskConfiguration_dabaseid,databaseid):
+    def createDailyTask(self,taskConfiguration_dabaseid,offDayDatabaseId,databaseid):
     #    task_ls=self.getDailyTaskFromFile()
         task_ls=self.getTaskConfiguration(taskConfiguration_dabaseid)
         utc_timestamp = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) 
         now_utc8=(utc_timestamp+dt.timedelta(hours=self.deltaTime))
         # print("utc now"+str(utc_timestamp) )       
         # print("utc8 now"+str(now_utc8) )
-        for task in task_ls:           
-            endDate = datetime.strptime(task.EndDate, '%Y-%m-%d')  
-            if now_utc8.date()<=endDate.date():                           
-                if task.Type=="Daily":
-                    self.createTask(databaseid,task)
-                elif task.Type=="Workday":                                          
-                    if now_utc8.weekday()<5: #workday
+        offDateList=self.getOffDateList(offDayDatabaseId)
+        
+        for task in task_ls:  
+            createTask=True
+            for tag in task.Tag:
+                if tag["name"]=="IgnoreOnOffDay" and now_utc8.strftime('%Y-%m-%d') in offDateList :                 
+                    createTask=False
+                    logging.info("Task {0} will not be created  due to off day today ".format(task.Title))
+            if   createTask==True:                
+                endDate = datetime.strptime(task.EndDate, '%Y-%m-%d')  
+                if now_utc8.date()<=endDate.date():                           
+                    if task.Type=="Daily":
                         self.createTask(databaseid,task)
-                elif task.Type=="SpecificDay":       
-                    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-                    if days[now_utc8.weekday()] in task.CycleDays: #workday
-                        self.createTask(databaseid,task)
-                elif task.Type=="SpecificDateRange": 
-                    dateRange=task.CycleDateRange                        
-                    startDate=datetime.strptime(dateRange[0], '%Y-%m-%d')   
-                    endDate= datetime.strptime(dateRange[1], '%Y-%m-%d')   
-                    if now_utc8.date()>=startDate.date() and now_utc8.date()<=endDate.date(): #workday
-                        self.createTask(databaseid,task)
-                else:
-                    pass
+                    elif task.Type=="Workday":                                          
+                        if now_utc8.weekday()<5: #workday
+                            self.createTask(databaseid,task)
+                    elif task.Type=="SpecificDay":       
+                        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                        if days[now_utc8.weekday()] in task.CycleDays: #workday
+                            self.createTask(databaseid,task)
+                    elif task.Type=="SpecificDateRange": 
+                        dateRange=task.CycleDateRange                        
+                        startDate=datetime.strptime(dateRange[0], '%Y-%m-%d')   
+                        endDate= datetime.strptime(dateRange[1], '%Y-%m-%d')   
+                        if now_utc8.date()>=startDate.date() and now_utc8.date()<=endDate.date(): #workday
+                            self.createTask(databaseid,task)
+                    else:
+                        pass
 
     def autoFillCompleteDate(self,databaseid):
         notion_Result=self.getTaskWithDoneStatusAndEmptyCompleteDate(databaseid)
@@ -361,7 +369,53 @@ class Utils:
         data=json.loads(body)	
         s=client.send_post("databases/{0}/query".format(databaseid),data) #read all data from databases                
         return s
-        
+    
+    def getOffDate(self,databaseid):
+        client=self.client
+        body="""
+        {
+  	"filter": {
+
+
+  		"property": "Status",
+  		"select": {
+  			"equals": "Active"
+  		}
+
+
+  	}
+  }
+        """   
+        data=json.loads(body)	
+        s=client.send_post("databases/{0}/query".format(databaseid),data) #read all data from databases                
+        return s
+
+    def getOffDateList(self,databaseid):    
+        notionResult=self.getOffDate(databaseid)
+        OffDate_list=[]        
+        if len(notionResult)>0:            
+            notionResultList=notionResult["results"]
+            for notionResult in notionResultList:                
+                offdateStart=notionResult["properties"]['Date']['date']['start']
+                offdateEnd=notionResult["properties"]['Date']['date']['end']
+                if offdateEnd is None:
+                    if offdateStart not in OffDate_list:
+                        OffDate_list.append(offdateStart)
+                else:
+                    offdateStart2=datetime.strptime(offdateStart, '%Y-%m-%d') 
+                    offdateEnd2=datetime.strptime(offdateEnd, '%Y-%m-%d') 
+                    for dt in self.daterange(offdateStart2, offdateEnd2):
+                        # print(dt.strftime("%Y-%m-%d"))  
+                        offdate=dt.strftime("%Y-%m-%d")
+                        if offdate not in OffDate_list:
+                            OffDate_list.append(offdate) 
+        return       OffDate_list             
+                    
+
+    def daterange(self,date1, date2):
+        for n in range(int ((date2 - date1).days)+1):
+            yield date1 + timedelta(n)
+
     def getTaskConfiguration(self,databaseid):
         notionResult=self.getTaskConfigurationFromNotion(databaseid)
         notionConfiguration_list=[]        
