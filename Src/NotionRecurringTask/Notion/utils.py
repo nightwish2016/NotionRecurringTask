@@ -65,8 +65,8 @@ class Utils:
             completeDate=result['properties']['CompleteDate']['date']
             pageid=result["id"] 
             taskName=""
-            if len(result['properties']["Name"]["title"])>0:          
-                taskName=result['properties']["Name"]["title"][0]["text"]['content']            
+            if len(result['properties'][""]["title"])>0:          
+                taskName=result['properties'][""]["title"][0]["text"]['content']            
             if completeDate is None:
                 #update completeDate
                 logging.info("Fill Completed task [{0}] with date {1}".format(taskName,str(lastDate.date())))
@@ -246,8 +246,8 @@ class Utils:
             pageid=page["id"]            
             expirationDateStr=""
             taskName=""
-            if len(page["properties"]["Name"]["title"])>0:           
-                taskName=page["properties"]["Name"]["title"][0]["text"]['content']
+            if len(page["properties"][""]["title"])>0:           
+                taskName=page["properties"][""]["title"][0]["text"]['content']
             date=page["properties"]['ExpirationDate/DateRange']["date"]
             if date is None: # Expiration is empty
                 logging.info("Task [{0}] expirationDate is None,Update status to [To Do],update ExpirationDate to Today".format(taskName))
