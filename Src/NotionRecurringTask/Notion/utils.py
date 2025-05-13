@@ -8,7 +8,7 @@ from NotionRecurringTask.Notion.TaskConfiguration import TaskConfiguration
 from NotionRecurringTask.notion import *
 
 import logging
-logging.basicConfig(encoding='utf-8', level=logging.INFO)
+# logging.basicConfig(encoding='utf-8', level=logging.INFO)
 class Utils:
     def __init__(self,auth,deltaTime): 
         self.__baseurl="https://api.notion.com" 
