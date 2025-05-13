@@ -6,4 +6,4 @@ if __name__ == "__main__":
     databaseid='XXX'
     timeDeltaWithUTC=8
     knotion=RecurringTask()
-    knotion.process(auth,taskConfiguration_dabaseid,databaseid)
+    knotion.process(auth,taskConfiguration_dabaseid,databaseid,timeDeltaWithUTC)
