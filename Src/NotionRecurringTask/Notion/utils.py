@@ -23,14 +23,15 @@ class Utils:
         now_utc8=(utc_timestamp+dt.timedelta(hours=self.deltaTime))
         # print("utc now"+str(utc_timestamp) )       
         # print("utc8 now"+str(now_utc8) )
+        is_public_holiday=self.isChinaPublicHoliday(now_utc8.date())
         offDateList=self.getOffDateList(offDayDatabaseId)
+        is_offday_in_config=now_utc8.strftime('%Y-%m-%d') in offDateList
         
         for task in task_ls:  
             createTask=True
-            for tag in task.Tag:
-                if tag["name"]=="IgnoreOnOffDay" and now_utc8.strftime('%Y-%m-%d') in offDateList :                 
-                    createTask=False
-                    logging.info("Task {0} will not be created  due to off day today ".format(task.Title))
+            if self.hasTag(task.Tag, "ignoreonoffday") and (is_public_holiday or is_offday_in_config):
+                createTask=False
+                logging.info("Task {0} will not be created due to statutory holiday or configured off day today".format(task.Title))
             if   createTask==True:                
                 endDate = datetime.strptime(task.EndDate, '%Y-%m-%d')  
                 if now_utc8.date()<=endDate.date():                           
@@ -414,6 +415,29 @@ class Utils:
                             OffDate_list.append(offdate) 
         return       OffDate_list             
                     
+
+    def hasTag(self, tags, targetTagName):
+        if tags is None:
+            return False
+        targetTagName=targetTagName.lower()
+        for tag in tags:
+            if isinstance(tag, dict):
+                tagName=tag.get("name", "")
+            else:
+                tagName=str(tag)
+            if isinstance(tagName, str) and tagName.lower()==targetTagName:
+                return True
+        return False
+
+    def isChinaPublicHoliday(self, currentDate):
+        try:
+            import chinese_calendar
+            return chinese_calendar.is_holiday(currentDate)
+        except ImportError:
+            logging.warning("Package chinese_calendar is not installed, statutory holiday detection is skipped")
+        except Exception as ex:
+            logging.warning("Failed to query chinese_calendar due to {0}, statutory holiday detection is skipped".format(ex))
+        return False
 
     def daterange(self,date1, date2):
         for n in range(int ((date2 - date1).days)+1):
