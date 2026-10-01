@@ -1,0 +1,13 @@
+[Unit]
+Description=Create and update recurring Notion tasks
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/mytools/NotionRecurringTask
+ExecStart=/root/mytools/NotionRecurringTask/start.sh
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+StandardOutput=append:/root/mytools/NotionRecurringTask/result.log
+StandardError=append:/root/mytools/NotionRecurringTask/result.log

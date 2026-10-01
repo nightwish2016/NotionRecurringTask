@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Notion recurring task daily at 00:02 Asia/Shanghai
+
+[Timer]
+OnCalendar=*-*-* 00:02:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=0
+Unit=notion-recurring-task.service
+
+[Install]
+WantedBy=timers.target

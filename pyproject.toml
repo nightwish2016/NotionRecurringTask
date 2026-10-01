@@ -9,7 +9,8 @@ authors = [
   { name="Example Author", email="author@example.com" },
 ]
 dependencies = [
-    "requests >=2.6"   
+    "requests >=2.6",
+    "python-dotenv",
 ]
 description = "A small example package"
 readme = "README.md"

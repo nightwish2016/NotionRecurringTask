@@ -5,3 +5,4 @@
 azure-functions
 requests
 chinese-calendar
+python-dotenv
